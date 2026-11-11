@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registo da Igreja</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#f4f6f9;--sf:#fff;--tx:#1c2530;--mut:#5f6b7a;--ac:#2b3a67;--gd:#8a6212;--bd:#d9dee6;--dg:#a33;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161d;--sf:#1b212b;--tx:#e8ecf2;--mut:#9aa6b6;--ac:#9db2f0;--gd:#e0b25a;--bd:#2f3846;--dg:#f08a8a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12161d;--sf:#1b212b;--tx:#e8ecf2;--mut:#9aa6b6;--ac:#9db2f0;--gd:#e0b25a;--bd:#2f3846;--dg:#f08a8a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 "Public Sans",system-ui,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:0}
+h2{font-size:1.15rem;margin:18px 0 10px}
+h3{font-size:1rem;margin:16px 0 6px}
+.card h2:first-child{margin-top:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+nav{display:flex;gap:6px;margin-bottom:16px}
+nav button{flex:1;padding:10px;border:1px solid var(--bd);background:var(--sf);color:var(--tx);border-radius:8px;font:600 .95rem "Public Sans",system-ui,sans-serif;cursor:pointer}
+nav button.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:16px}
+.sc{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:7px 6px;text-align:left;border-bottom:1px solid var(--bd);vertical-align:top}
+th{font-size:.85rem;color:var(--mut);font-weight:600}
+td.n,th.n{text-align:right}
+tfoot td{font-weight:700;border-top:2px solid var(--ac);border-bottom:0}
+input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:8px;max-width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.row label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mut);gap:3px}
+.btn{background:var(--ac);color:var(--bg);border:0;border-radius:6px;padding:9px 14px;font:600 .95rem "Public Sans",system-ui,sans-serif;cursor:pointer}
+.btn.l{background:transparent;color:var(--tx);border:1px solid var(--bd);padding:5px 9px;font-size:.85rem}
+.btn.d{color:var(--dg)}
+.mut{color:var(--mut);font-size:.9rem}
+.err{color:var(--dg);font-size:.9rem;min-height:1.4em}
+tr{break-inside:avoid}
+h2,h3{break-after:avoid}
+.ft{margin-top:28px;padding-top:10px;border-top:1px solid var(--bd);text-align:center;font-size:.85rem;color:var(--mut)}
+@page{margin:0}
+@media print{
+ body{background:#fff;color:#000;font-size:12px}
+ :root{--tx:#000;--mut:#444;--bd:#999;--ac:#000;--sf:#fff}
+ .np,nav{display:none!important}
+ .card{border:0;padding:0}
+ .wrap{padding:14mm}
+ table{min-width:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div id="login" class="card" style="max-width:380px;margin:40px auto" hidden>
+  <h2>Entrar</h2>
+  <div class="row" style="flex-direction:column;align-items:stretch">
+   <label>Email<input id="le" type="email" autocomplete="username"></label>
+   <label>Palavra-passe<input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></label>
+   <button class="btn" onclick="login()">Entrar</button>
+   <div class="err" id="lerr"></div>
+  </div>
+  <p class="mut">O acesso é dado pelo administrador.</p>
+ </div>
+ <div id="app" hidden>
+  <div class="top np"><h1 id="ttl">Registo da Igreja</h1><span><span class="mut" id="who"></span> <button class="btn l" onclick="logout()">Sair</button></span></div>
+  <nav class="np">
+   <button id="t-m" onclick="go('m')">Membros</button>
+   <button id="t-o" onclick="go('o')">Ofertas</button>
+   <button id="t-r" onclick="go('r')">Relatório</button>
+  </nav>
+  <main id="m"></main>
+ </div>
+ <p class="mut" id="boot">A carregar…</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* ====== CONFIGURAÇÃO: cole aqui os dois valores do seu projeto Supabase ====== */
+const SUPABASE_URL="https://bfhqchzpzqrthktwurpk.supabase.co";
+const SUPABASE_KEY="sb_publishable_nk9CuIJP0N79n-gguo6K9w_I-Ugw...";
+/* ============================================================================= */
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const GR=[["intermedios","Intermédios"],["jovens","Jovens"],["ativistas","Ativistas"],["avos","Avós"],["maes","Mães"],["pais","Pais"]];
+const TP=[["oferta","Ofertas"],["dizimo","Dízimos"],["tafula","Tafula"]];
+const gn=k=>(GR.find(g=>g[0]===k)||[0,"Geral"])[1];
+const tn=k=>TP.find(t=>t[0]===(k||"oferta"))[1];
+const opts=(sel,all)=>(all?`<option value="">${all}</option>`:"")+GR.map(g=>`<option value="${g[0]}"${g[0]===sel?" selected":""}>${g[1]}</option>`).join("");
+let S={church:"Nome da Igreja",members:[],offers:[]},user=null,role="leitor",tab="m",from="",to="",fg="",q="",edit=null,lg="intermedios",rl=true;
+const canE=()=>role==="editor";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money=v=>v.toLocaleString("pt-PT",{minimumFractionDigits:2,maximumFractionDigits:2})+" MT";
+const fd=d=>d.split("-").reverse().join("/");
+const p2=n=>String(n).padStart(2,"0");
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())};
+function shift(d,n){const x=new Date(d+"T00:00:00");x.setDate(x.getDate()+n);return x.getFullYear()+"-"+p2(x.getMonth()+1)+"-"+p2(x.getDate())}
+const monday=d=>shift(d,-((new Date(d+"T00:00:00").getDay()+6)%7));
+const byName=(a,b)=>a.name.localeCompare(b.name,"pt");
+
+/* ACESSO */
+async function boot(){
+ const{data:{session}}=await sb.auth.getSession();
+ $("boot").hidden=true;
+ if(!session){$("login").hidden=false;$("app").hidden=true;return}
+ user=session.user;await loadAll();
+}
+async function login(){
+ $("lerr").textContent="";
+ const{error}=await sb.auth.signInWithPassword({email:$("le").value.trim(),password:$("lp").value});
+ if(error){$("lerr").textContent="Email ou palavra-passe incorretos.";return}
+ $("login").hidden=true;boot();
+}
+async function logout(){await sb.auth.signOut();location.reload()}
+async function loadAll(){
+ const[p,m,e,c]=await Promise.all([
+  sb.from("perfis").select("papel").eq("id",user.id).maybeSingle(),
+  sb.from("membros").select("*"),sb.from("entradas").select("*"),
+  sb.from("config").select("igreja").eq("id",1).maybeSingle()]);
+ if(m.error||e.error){alert("Erro ao carregar os dados: "+(m.error||e.error).message);return}
+ role=p.data&&p.data.papel||"leitor";
+ S.church=c.data&&c.data.igreja||S.church;
+ S.members=m.data.map(x=>({id:x.id,g:x.grupo,name:x.nome,age:x.idade,tel:x.contacto||"",area:x.bairro||"",note:x.obs||""}));
+ S.offers=e.data.map(x=>({id:x.id,t:x.tipo,date:x.data,g:x.origem||"",amount:Number(x.valor),note:x.obs||""}));
+ $("app").hidden=false;render();
+}
+async function run(req){const{error}=await req;if(error){alert("Não foi possível guardar: "+error.message);return false}await loadAll();return true}
+
+function go(t){tab=t;render()}
+function render(){
+ $("ttl").textContent=S.church;
+ $("who").textContent=(user.email||"")+" · "+(canE()?"Editor":"Só leitura");
+ ["m","o","r"].forEach(k=>$("t-"+k).className=k===tab?"on":"");
+ $("m").innerHTML=tab==="m"?viewM():tab==="o"?viewO():viewR();
+ if(tab==="m")listM();
+}
+/* MEMBROS */
+function viewM(){
+ const m=edit&&S.members.find(x=>x.id===edit)||{};
+ const g=m.g||lg;
+ const form=canE()?`<div class="card"><h2>${m.id?"Editar membro":"Novo membro"}</h2><div class="row">
+ <label>Grupo<select id="mg">${opts(g)}</select></label>
+ <label>Nome completo<input id="mn" value="${esc(m.name||"")}"></label>
+ <label>Idade<input id="ma" type="number" min="0" max="120" style="width:80px" value="${m.age??""}"></label>
+ <label>Contacto<input id="mc" type="tel" value="${esc(m.tel||"")}"></label>
+ <label>Bairro ou zona<input id="mz" value="${esc(m.area||"")}"></label>
+ <label>Observação<input id="mo" value="${esc(m.note||"")}"></label>
+ <button class="btn" onclick="saveM()">${m.id?"Guardar alterações":"Guardar membro"}</button>
+ ${m.id?`<button class="btn l" onclick="edit=null;render()">Cancelar</button>`:""}</div></div>`:"";
+ return form+`<div class="card"><h2>Membros registados</h2><div class="row" style="margin-bottom:10px">
+ <label>Grupo<select id="fg" onchange="fg=this.value;listM()">${opts(fg,"Todos os grupos")}</select></label>
+ <label>Procurar por nome<input id="fq" value="${esc(q)}" oninput="q=this.value;listM()"></label></div><div id="ml"></div></div>`;
+}
+function listM(){
+ const t=q.trim().toLowerCase();
+ const L=S.members.filter(m=>(!fg||m.g===fg)&&(!t||m.name.toLowerCase().includes(t))).sort(byName);
+ $("ml").innerHTML=L.length?`<p class="mut">${L.length} ${L.length===1?"pessoa":"pessoas"}</p><div class="sc"><table><thead><tr><th>Nome</th><th>Grupo</th><th class="n">Idade</th><th>Contacto</th><th>Bairro</th><th>Obs.</th><th></th></tr></thead><tbody>${L.map(m=>`<tr><td>${esc(m.name)}</td><td>${gn(m.g)}</td><td class="n">${m.age??""}</td><td>${esc(m.tel)}</td><td>${esc(m.area)}</td><td>${esc(m.note)}</td><td style="white-space:nowrap">${canE()?`<button class="btn l" onclick="editM('${m.id}')">Editar</button> <button class="btn l d" onclick="delM('${m.id}')">Apagar</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="mut">${S.members.length?"Nenhum resultado para este filtro.":"Ainda não há membros registados."}</p>`;
+}
+async function saveM(){
+ const name=$("mn").value.trim();if(!name){alert("Escreva o nome da pessoa.");return}
+ const a=$("ma").value;
+ const r={grupo:$("mg").value,nome:name,idade:a===""?null:Math.max(0,parseInt(a)||0),contacto:$("mc").value.trim(),bairro:$("mz").value.trim(),obs:$("mo").value.trim()};
+ lg=r.grupo;
+ const ok=await run(edit?sb.from("membros").update(r).eq("id",edit):sb.from("membros").insert(r));
+ if(ok)edit=null,render();
+}
+function editM(id){edit=id;render();window.scrollTo(0,0)}
+async function delM(id){const m=S.members.find(x=>x.id===id);if(confirm("Apagar "+m.name+"?"))await run(sb.from("membros").delete().eq("id",id))}
+/* OFERTAS, DÍZIMOS, TAFULA */
+function fcard(t,title,hint,orig){return `<div class="card"><h2>${title}</h2><p class="mut">${hint}</p><div class="row"><label>Data<input type="date" id="od_${t}" value="${today()}"></label>${orig?`<label>Origem<select id="oz_${t}">${opts("","Geral")}</select></label>`:""}<label>Valor total (MT)<input type="number" id="ov_${t}" min="0" step="0.01" placeholder="0,00"></label><label>Observação<input id="on_${t}" placeholder="Opcional"></label><button class="btn" onclick="addO('${t}')">Guardar</button></div></div>`}
+function viewO(){
+ const list=[...S.offers].sort((a,b)=>b.date.localeCompare(a.date));
+ const forms=canE()?fcard("oferta","Ofertas","Registe as ofertas do dia.",1)+fcard("dizimo","Dízimos","Total de dízimos recebidos neste dia.")+fcard("tafula","Tafula","Total da tafula neste dia."):"";
+ return forms+`<div class="card"><h2>Registos</h2>${list.length?`<div class="sc"><table><thead><tr><th>Data</th><th>Tipo</th><th>Origem</th><th class="n">Valor</th><th>Observação</th><th></th></tr></thead><tbody>${list.map(o=>`<tr><td>${fd(o.date)}</td><td>${tn(o.t)}</td><td>${o.t==="oferta"?gn(o.g):"—"}</td><td class="n">${money(o.amount)}</td><td>${esc(o.note)}</td><td>${canE()?`<button class="btn l d" onclick="delO('${o.id}')">Apagar</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="mut">Nenhum registo ainda.</p>`}</div>`;
+}
+async function addO(t){
+ const v=parseFloat($("ov_"+t).value),d=$("od_"+t).value;
+ if(!(v>0)||!d){alert("Indique a data e um valor maior que zero.");return}
+ await run(sb.from("entradas").insert({tipo:t,data:d,origem:t==="oferta"?$("oz_"+t).value:"",valor:v,obs:$("on_"+t).value.trim()}));
+}
+async function delO(id){if(confirm("Apagar este registo?"))await run(sb.from("entradas").delete().eq("id",id))}
+/* RELATÓRIO */
+function weeksT(ws,wk,offs){const T=k=>offs.filter(o=>o.t===k).reduce((a,o)=>a+o.amount,0);
+ return `<div class="sc"><table><thead><tr><th>Semana</th>${TP.map(t=>`<th class="n">${t[1]}</th>`).join("")}<th class="n">Total</th></tr></thead><tbody>${ws.map(m=>`<tr><td>${fd(m)} a ${fd(shift(m,6))}</td>${TP.map(t=>`<td class="n">${money(wk[m][t[0]])}</td>`).join("")}<td class="n">${money(wk[m].s)}</td></tr>`).join("")}</tbody><tfoot><tr><td>Total</td>${TP.map(t=>`<td class="n">${money(T(t[0]))}</td>`).join("")}<td class="n">${money(offs.reduce((a,o)=>a+o.amount,0))}</td></tr></tfoot></table></div>`}
+function viewR(){
+ const offs=S.offers.filter(o=>(!from||o.date>=from)&&(!to||o.date<=to));
+ const wk={};offs.forEach(o=>{const m=monday(o.date);(wk[m]=wk[m]||{oferta:0,dizimo:0,tafula:0,s:0});wk[m][o.t]+=o.amount;wk[m].s+=o.amount});
+ const ws=Object.keys(wk).sort();
+ const per=from||to?`Período: ${from?fd(from):"início"} a ${to?fd(to):"hoje"}`:"Período: todos os registos";
+ const cnt=g=>S.members.filter(m=>m.g===g).length;
+ const lists=rl?GR.map(g=>{const L=S.members.filter(m=>m.g===g[0]).sort(byName);return L.length?`<h3>${g[1]} (${L.length})</h3><div class="sc"><table><thead><tr><th>Nome</th><th class="n">Idade</th><th>Contacto</th><th>Bairro</th></tr></thead><tbody>${L.map(m=>`<tr><td>${esc(m.name)}</td><td class="n">${m.age??""}</td><td>${esc(m.tel)}</td><td>${esc(m.area)}</td></tr>`).join("")}</tbody></table></div>`:""}).join(""):"";
+ return `<div class="card np"><h2>Relatório</h2><div class="row"><label>De<input type="date" value="${from}" onchange="from=this.value;render()"></label>
+ <label>até<input type="date" value="${to}" onchange="to=this.value;render()"></label>
+ <label style="flex-direction:row;align-items:center;gap:6px;color:var(--tx)"><input type="checkbox" ${rl?"checked":""} onchange="rl=this.checked;render()">Incluir lista de nomes</label>
+ <button class="btn" onclick="window.print()">Imprimir relatório</button></div>
+ ${canE()?`<div class="row" style="margin-top:10px"><label>Nome da igreja<input value="${esc(S.church)}" onchange="run(sb.from('config').update({igreja:this.value.trim()||'Nome da Igreja'}).eq('id',1))"></label></div>`:""}</div>
+ <div class="card" id="rep"><h1>${esc(S.church)}</h1><div class="mut">Relatório gerado em ${fd(today())} · ${per}</div>
+ <h2>Membros por grupo</h2><div class="sc"><table><thead><tr><th>Grupo</th><th class="n">Pessoas</th></tr></thead><tbody>${GR.map(g=>`<tr><td>${g[1]}</td><td class="n">${cnt(g[0])}</td></tr>`).join("")}</tbody><tfoot><tr><td>Total</td><td class="n">${S.members.length}</td></tr></tfoot></table></div>
+ <h2>Ofertas, dízimos e tafula por semana</h2>${ws.length?weeksT(ws,wk,offs):`<p class="mut">Sem registos neste período.</p>`}
+ ${rl?`<h2>Lista de membros</h2>${lists||`<p class="mut">Sem membros registados.</p>`}`:""}<div class="ft">Made by AM.Dev</div></div>`;
+}
+boot();
+</script>
+</body>
+</html>
